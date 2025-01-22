@@ -1,0 +1,5 @@
+../Core/Src/LED7SEG.c:6:6:LED7SEG_Init	1
+../Core/Src/LED7SEG.c:34:6:LED7SEG_InitScan	1
+../Core/Src/LED7SEG.c:48:6:LED7SEG_WriteOneNumber	3
+../Core/Src/LED7SEG.c:74:19:LED7SEG_ConvertInt	1
+../Core/Src/LED7SEG.c:84:6:LED7SEG_Scan4Led	1
