@@ -1,0 +1,14 @@
+In the below serial terminal output, we can see Task Two is run first following Task One(defaultTask) and
+Task Three because Task Two has the height priority (osPriorityAboveNormal) then Task One
+(osPriorityNormal), and Task Three has the lowest priority (osPriorityLow). You can see the priority in the
+code above.
+After that Task One, Task Two, and Task Three are going to block state for 1000 Miliseconds, 2000
+Miliseconds, and 1000 Miliseconds respectively. This time Task One ran first because it had higher
+priority than Task Three Then the scheduler went to Task Three incremented the count value to 1 and
+printed text inside the task after Task Three completed the execution Task Two ran. 
+This process is continued until the count value is three. When the count value is three, Task Three
+suspends Task Two. At that time only Task One and Task Three are active. When the count value goes to
+five then we resume Task Two from the Task Three function. When the count value is seven Task Three
+deleted itself. Finally, Task One and Task Two are run. Task One ran twice and then Task One ran once
+because of the Priroty and delay.
+https://embeddedthere.com/stm32-freertos-task-scheduling-tutorial/  
