@@ -76,6 +76,25 @@ void Task4_DisplayTempHumidity(void const * argument);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+uint8_t system_state = 1; // 1: Chạy, 0: Dừng
+uint8_t received_data;       // Biến lưu dữ liệu nhận được qua UART
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART1) {
+        if (received_data == '1') {
+            system_state = 1; // Chạy
+            HAL_UART_Transmit(&huart1, (uint8_t *)" System Running\r\n", 16, HAL_MAX_DELAY);
+        } else if (received_data == '0') {
+            system_state = 0; // Dừng
+            HAL_UART_Transmit(&huart1, (uint8_t *)" System Stopped\r\n", 16, HAL_MAX_DELAY);
+        }
+
+        // Tiếp tục nhận dữ liệu
+        HAL_UART_Receive_IT(&huart1, &received_data, 1);
+    }
+}
+
 uint8_t digit_codes[10] = {
     0xC0, // 0
     0xF9, // 1
@@ -90,7 +109,7 @@ uint8_t digit_codes[10] = {
 };
 
 uint8_t dp[10] = {
-    0x20, // 0
+    0x40, // 0
     0x79, // 1
     0x24, // 2
     0x30, // 3
@@ -233,6 +252,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   //osKernelInitialize();
   HAL_TIM_Base_Start(&htim1);
+  HAL_UART_Receive_IT(&huart1, &received_data, 1);
   /* USER CODE END 2 */
 
   /* Create the mutex(es) */
@@ -515,6 +535,7 @@ void Task1_GetTemperature(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+	  if (system_state == 1) { // Chỉ thực thi nếu đang ở trạng thái chạy
 	    char msg[] = "Task 1 is running\r\n";
 	    HAL_UART_Transmit(&huart1, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
 	    DHT11_Start();
@@ -532,6 +553,7 @@ void Task1_GetTemperature(void const * argument)
 	    Temperature = TEMP;
 	    Humidity = R1;
 	    //RH = R1;
+	  }
 	    osDelay(2000);
   }
   /* USER CODE END 5 */
@@ -550,6 +572,7 @@ void Task2_GetHumidity(void const * argument)
   /* Infinite loop */
   for(;;)
   {
+	  if (system_state == 1) { // Chỉ thực thi nếu đang ở trạng thái chạy
 	    //char msg[] = "Task 2 is running\r\n";
 	    //HAL_UART_Transmit(&huart1, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
 	    // Bảo vệ việc đ�?c từ R1
@@ -559,6 +582,7 @@ void Task2_GetHumidity(void const * argument)
 	    //Humidity = RH;
 	    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); // �?ổi trạng thái chân GPIO (nháy LED)
 	    //HAL_Delay(100);
+	  }
 	    osDelay(2000);
   }
   /* USER CODE END Task2_GetHumidity */
@@ -578,12 +602,14 @@ void Task3_SendTempHumidity(void const * argument)
   char buffer[50];
   for(;;)
   {
+	  if (system_state == 1) { // Chỉ thực thi nếu đang ở trạng thái chạy
 	    char msg[] = "Task 2 is running\r\n";
 	    HAL_UART_Transmit(&huart1, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
 	    snprintf(buffer, sizeof(buffer), "Temp: %.1f \n", Temperature);
 	    HAL_UART_Transmit(&huart1, (uint8_t *)buffer, strlen(buffer), HAL_MAX_DELAY);
 	    snprintf(buffer, sizeof(buffer), "Hum: %.1f \n", Humidity);
 	    HAL_UART_Transmit(&huart1, (uint8_t *)buffer, strlen(buffer), HAL_MAX_DELAY);
+	  }
 	    osDelay(2000);
   }
   /* USER CODE END Task3_SendTempHumidity */
@@ -603,12 +629,14 @@ void Task4_DisplayTempHumidity(void const * argument)
   osDelay(5);
   for(;;)
   {
+	  if (system_state == 1) { // Chỉ thực thi nếu đang ở trạng thái chạy
 	    char msg[] = "Task 3 is running\r\n";
 	    HAL_UART_Transmit(&huart1, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
 	    temp_humi_display = (uint8_t)Temperature * 100 + (uint8_t)Humidity;
 	    ConvertNumberToDigits(temp_humi_display, digits);
 	    SendToLED_SPI(digits);
 	    //HAL_Delay(500);
+	  }
 	    osDelay(2000);
   }
   /* USER CODE END Task4_DisplayTempHumidity */

@@ -65,7 +65,25 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-// Định nghĩa các trạng thái của hệ thống
+
+uint8_t system_running = 1;  // Biến trạng thái: 1 là chạy, 0 là dừng
+uint8_t received_data;       // Biến lưu dữ liệu nhận được qua UART
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART1) {  // Kiểm tra UART1
+        if (received_data == '1') {
+            system_running = 1;  // Hệ thống chạy
+            HAL_UART_Transmit(&huart1, (uint8_t *)" System Running\r\n", 16, HAL_MAX_DELAY);
+        } else if (received_data == '0') {
+            system_running = 0;  // Hệ thống dừng
+            HAL_UART_Transmit(&huart1, (uint8_t *)" System Stopped\r\n", 16, HAL_MAX_DELAY);
+        }
+        // Tiếp tục nhận dữ liệu qua UART
+        HAL_UART_Receive_IT(&huart1, &received_data, 1);
+    }
+}
+
+// �?ịnh nghĩa các trạng thái của hệ thống
 typedef enum {
 	STATE_READ_TEMP,
     STATE_READ_HUMI,
@@ -89,7 +107,7 @@ uint8_t digit_codes[10] = {
 };
 
 uint8_t dp[10] = {
-    0x20, // 0
+    0x40, // 0
     0x79, // 1
     0x24, // 2
     0x30, // 3
@@ -191,6 +209,22 @@ void delay(uint16_t time){
  	return i;
  }
 
+ void Display(float Temperature, float Humidity) {
+ 	    //char msg[] = "Task 4 is running\r\n";
+ 	    //HAL_UART_Transmit(&huart1, (uint8_t *)msg, strlen(msg), HAL_MAX_DELAY);
+      uint16_t temp_humi_display;
+      uint8_t digits[4]; // Mảng lưu từng chữ số
+
+      // Chuyển đổi nhiệt độ và độ ẩm thành giá trị nguyên để hiển thị
+      temp_humi_display = (uint8_t)Temperature * 100 + (uint8_t)Humidity;
+
+      // Tách từng chữ số từ giá trị
+      ConvertNumberToDigits(temp_humi_display, digits);
+
+      // Gửi dữ liệu đến LED thông qua giao tiếp SPI
+      SendToLED_SPI(digits);
+  }
+
  void StateMachine_Run(void) {
 
      switch (currentState) {
@@ -202,11 +236,11 @@ void delay(uint16_t time){
 
             DHT11_Start();                     // Kích hoạt giao tiếp với DHT11
             Presence = Check_Response();       // Kiểm tra phản hồi từ DHT11
-            R1 = DHT11_Read();             // Đọc phần nguyên độ ẩm
-            R2 = DHT11_Read();             // Đọc phần thập phân độ ẩm
-            T1 = DHT11_Read();             // Đọc phần nguyên nhiệt độ
-            T2 = DHT11_Read();             // Đọc phần thập phân nhiệt độ
-            sum = DHT11_Read();            // Đọc checksum để kiểm tra tính hợp lệ
+            R1 = DHT11_Read();             // �?�?c phần nguyên độ ẩm
+            R2 = DHT11_Read();             // �?�?c phần thập phân độ ẩm
+            T1 = DHT11_Read();             // �?�?c phần nguyên nhiệt độ
+            T2 = DHT11_Read();             // �?�?c phần thập phân nhiệt độ
+            sum = DHT11_Read();            // �?�?c checksum để kiểm tra tính hợp lệ
 
             TEMP = T1 + T2 / 10.0;         // Tính nhiệt độ (phần nguyên + phần thập phân)
             Temperature = TEMP;
@@ -255,7 +289,7 @@ void delay(uint16_t time){
             // Gửi dữ liệu đến LED thông qua giao tiếp SPI
             SendToLED_SPI(digits);
 
-            currentState = STATE_READ_TEMP; // Quay lại trạng thái đọc cảm biến
+            currentState = STATE_READ_TEMP; // Quay lại trạng thái đ�?c cảm biến
             break;
 
          default:
@@ -300,7 +334,7 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start(&htim1);
-
+  HAL_UART_Receive_IT(&huart1, &received_data, 1);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -310,8 +344,13 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	  if (system_running) {
       StateMachine_Run(); // Chạy máy trạng thái
       HAL_Delay(1000);    // Chu kỳ lặp lại sau mỗi 1 giây
+	  } else {
+  	    Display(00, 00);
+  	    HAL_Delay(2000);
+      }
   }
   /* USER CODE END 3 */
 }
